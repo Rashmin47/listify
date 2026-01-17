@@ -30,42 +30,54 @@ class _GroceryListState extends State<GroceryList> {
       'a2zecom-default-rtdb.firebaseio.com',
       'listify.json',
     );
-    final response = await http.get(url);
 
-    if(response.body == 'null') {
+    try{
+      final response = await http.get(url);
+      if(response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+
+      if(response.statusCode >= 400) {
+        setState(() {
+          _error = 'Failed to fetch data. Please try again later';
+        });
+
+
+      }
+      final Map<String, dynamic> listData = json.decode(
+        response.body,
+      );
+      final List<GroceryItem> loadedItems = [];
+
+      for (final item in listData.entries) {
+        final category = categories.entries.firstWhere(
+              (catItem) => catItem.value.title == item.value['category'],
+        ).value;
+        loadedItems.add(
+          GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category,
+          ),
+        );
+      }
       setState(() {
+        _groceryItems = loadedItems;
         _isLoading = false;
       });
-    }
-
-    if(response.statusCode >= 400) {
+    }catch(error){
       setState(() {
-        _error = 'Failed to fetch data. Please try again later';
+        _error = 'Something went Wrong!. Please try again later';
       });
+    }
 
 
-    }
-    final Map<String, dynamic> listData = json.decode(
-      response.body,
-    );
-    final List<GroceryItem> loadedItems = [];
-    for (final item in listData.entries) {
-      final category = categories.entries.firstWhere(
-        (catItem) => catItem.value.title == item.value['category'],
-      ).value;
-      loadedItems.add(
-        GroceryItem(
-          id: item.key,
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category,
-        ),
-      );
-    }
-    setState(() {
-      _groceryItems = loadedItems;
-      _isLoading = false;
-    });
+
+
+
 
   }
 
