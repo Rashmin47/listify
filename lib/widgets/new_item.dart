@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:listify/data/categories.dart';
 import 'package:listify/models/category.dart';
 import 'package:listify/models/grocery_item.dart';
+import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -11,6 +14,7 @@ class NewItem extends StatefulWidget {
 }
 
 class _NewItemState extends State<NewItem> {
+  final url = Uri.https('a2zecom-default-rtdb.firebaseio.com', 'listify.json');
   final _formKey = GlobalKey<FormState>();
   var _enteredName;
   var _enteredQuantity = 1;
@@ -19,8 +23,23 @@ class _NewItemState extends State<NewItem> {
   void _saveItem() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      Navigator.of(context).pop(GroceryItem(
-          id: DateTime.now().toString(), name: _enteredName, quantity: _enteredQuantity, category: _selectedCategory));
+      http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'name': _enteredName,
+          'quantity': _enteredQuantity,
+          'category': _selectedCategory.title,
+        }),
+      );
+      // Navigator.of(context).pop(
+      //   GroceryItem(
+      //     id: DateTime.now().toString(),
+      //     name: _enteredName,
+      //     quantity: _enteredQuantity,
+      //     category: _selectedCategory,
+      //   ),
+      // );
     }
   }
 
@@ -31,19 +50,17 @@ class _NewItemState extends State<NewItem> {
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Form(
-            key: _formKey,
-            child: Column(children: [
+          key: _formKey,
+          child: Column(
+            children: [
               TextFormField(
                 maxLength: 50,
-                decoration: InputDecoration(
-                  label: Text('Name'),
-                ),
+                decoration: InputDecoration(label: Text('Name')),
                 validator: (value) {
-                  if (value == null || value.isEmpty || value
-                      .trim()
-                      .length <= 1 || value
-                      .trim()
-                      .length > 50) {
+                  if (value == null ||
+                      value.isEmpty ||
+                      value.trim().length <= 1 ||
+                      value.trim().length > 50) {
                     return 'Must be 1 and 50 characters';
                   }
                   return null;
@@ -57,14 +74,14 @@ class _NewItemState extends State<NewItem> {
                 children: [
                   Expanded(
                     child: TextFormField(
-                      decoration: InputDecoration(
-                        label: Text('Quantity'),
-                      ),
+                      decoration: InputDecoration(label: Text('Quantity')),
                       keyboardType: TextInputType.number,
                       initialValue: '1',
                       validator: (value) {
-                        if (value == null || value.isEmpty || int.tryParse(
-                            value) == null || int.tryParse(value)! <= 0) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            int.tryParse(value) == null ||
+                            int.tryParse(value)! <= 0) {
                           return 'Must be a valid Positive Number';
                         }
                         return null;
@@ -76,41 +93,49 @@ class _NewItemState extends State<NewItem> {
                   ),
                   Expanded(
                     child: DropdownButtonFormField(
-                        value: _selectedCategory,
-                        items: [
-                          for(final category in categories.entries)
-                            DropdownMenuItem(
-                                value: category.value,
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 16,
-                                      height: 16,
-                                      color: category.value.color,
-                                    ),
-                                    const SizedBox(width: 6,),
-                                    Text(category.value.title),
-                                  ],
-                                ))
-                        ], onChanged: (value) {
-                      setState(() {
-                        _selectedCategory = value!;
-                      });
-                    }),
+                      value: _selectedCategory,
+                      items: [
+                        for (final category in categories.entries)
+                          DropdownMenuItem(
+                            value: category.value,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 16,
+                                  height: 16,
+                                  color: category.value.color,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(category.value.title),
+                              ],
+                            ),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value!;
+                        });
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12,),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () {
-                    _formKey.currentState!.reset();
-                  }, child: const Text('Reset')),
-                  ElevatedButton(onPressed: _saveItem, child: Text('Add Item'))
+                  TextButton(
+                    onPressed: () {
+                      _formKey.currentState!.reset();
+                    },
+                    child: const Text('Reset'),
+                  ),
+                  ElevatedButton(onPressed: _saveItem, child: Text('Add Item')),
                 ],
-              )
-            ])),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
